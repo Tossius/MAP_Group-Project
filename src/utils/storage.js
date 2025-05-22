@@ -304,6 +304,35 @@ export const deleteAnnouncement = async (announcementId, user) => {
   }
 };
 
+export const updateUser = async (updatedUser) => {
+  try {
+    if (!updatedUser.id) {
+      throw new Error('User id is required to update user');
+    }
+    const users = await getUsers();
+
+    const userExists = users.some(user => user.id === updatedUser.id);
+    if (!userExists) {
+      throw new Error('User not found');
+    }
+
+    const updatedUsers = users.map(user =>
+      user.id === updatedUser.id ? { ...user, ...updatedUser } : user
+    );
+
+    await storeData(STORAGE_KEYS.USERS, updatedUsers);
+
+    // Return user without password
+    const savedUser = updatedUsers.find(u => u.id === updatedUser.id);
+    const { password, ...userWithoutPassword } = savedUser;
+    return userWithoutPassword;
+
+  } catch (error) {
+    console.error('Error updating user:', error);
+    throw error;
+  }
+};
+
 // Initialize storage with sample data
 export const initializeStorage = async () => {
   try {

@@ -52,6 +52,9 @@ export const AuthProvider = ({ children }) => {
       // This would be implemented with your registration logic
       setUser(userData);
       setUserToken(userData.id);
+    },
+    updateUser: (newUserData) => {
+      setUser(newUserData);
     }
   };
 

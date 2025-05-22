@@ -1,13 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { StyleSheet, View, Text, TextInput, ScrollView, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import Button from '../components/Button';
 import Card from '../components/Card';
 import Colors from '../constants/colors';
-import { getCurrentUser, updateUser } from '../utils/storage'; // Adjust these based on your storage logic
+import { getCurrentUser, updateUser as updateUserStorage } from '../utils/storage';
+import { AuthContext } from '../context/AuthContext';
 
 const EditProfileScreen = ({ navigation }) => {
+  const { user, updateUser } = useContext(AuthContext);
+
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
@@ -16,23 +19,33 @@ const EditProfileScreen = ({ navigation }) => {
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    // Load current user data
     const loadUser = async () => {
-      const user = await getCurrentUser(); // Replace with actual logic
       if (user) {
         setUsername(user.username || '');
         setEmail(user.email || '');
         setPhone(user.phone || '');
         setTeam(user.team || '');
         setPosition(user.position || '');
+      } else {
+        const storedUser = await getCurrentUser();
+        if (storedUser) {
+          setUsername(storedUser.username || '');
+          setEmail(storedUser.email || '');
+          setPhone(storedUser.phone || '');
+          setTeam(storedUser.team || '');
+          setPosition(storedUser.position || '');
+        }
       }
     };
 
     loadUser();
-  }, []);
+  }, [user]);
 
   const handleSave = async () => {
-    if (!username || !email) {
+    const trimmedUsername = username.trim();
+    const trimmedEmail = email.trim();
+
+    if (!trimmedUsername || !trimmedEmail) {
       Alert.alert('Validation', 'Username and email are required.');
       return;
     }
@@ -40,13 +53,17 @@ const EditProfileScreen = ({ navigation }) => {
     setIsLoading(true);
 
     try {
-      await updateUser({
-        username,
-        email,
+      const updatedUser = {
+        ...user,
+        username: trimmedUsername,
+        email: trimmedEmail,
         phone,
         team,
         position,
-      });
+      };
+
+      await updateUserStorage(updatedUser);
+      updateUser(updatedUser);
 
       Alert.alert('Success', 'Profile updated successfully!');
       navigation.goBack();
@@ -72,7 +89,7 @@ const EditProfileScreen = ({ navigation }) => {
           <Button
             title={isLoading ? "Saving..." : "Save Changes"}
             onPress={handleSave}
-            disabled={isLoading}
+            disabled={isLoading || !username.trim() || !email.trim()}
           />
         </Card>
       </View>
