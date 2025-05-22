@@ -90,12 +90,6 @@ const LoginScreen = ({ navigation }) => {
             </TouchableOpacity>
           </View>
         </Card>
-        
-        <View style={styles.helpContainer}>
-          <Text style={styles.helpText}>Default admin credentials:</Text>
-          <Text style={styles.credentials}>Username: admin123</Text>
-          <Text style={styles.credentials}>Password: 12345</Text>
-        </View>
       </View>
     </View>
   );

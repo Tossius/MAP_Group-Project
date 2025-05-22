@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "map-hockey-3",
-    "slug": "map-hockey-3",
+    "name": "NamHockey",
+    "slug": "NamHockey",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",

@@ -10,7 +10,8 @@ import {
   ImageBackground,
   Dimensions,
   SafeAreaView,
-  RefreshControl
+  RefreshControl,
+  Linking
 } from 'react-native';
 import { 
   Ionicons, 
@@ -235,7 +236,10 @@ const HomeScreen = ({ navigation }) => {
         <View style={styles.linksSection}>
           <Text style={styles.linksSectionTitle}>Quick Links</Text>
           
-          <TouchableOpacity style={styles.linkCard} onPress={() => {}}>
+          <TouchableOpacity 
+          style={styles.linkCard} 
+          onPress={() => Linking.openURL('https://www.facebook.com/NamibiaHockey/')}
+          >
             <View style={styles.linkIconContainer}>
               <Feather name="globe" size={20} color={Colors.background} />
             </View>
@@ -389,7 +393,7 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     margin: 15,
     padding: 15,
-    shadowColor: '#000',
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
