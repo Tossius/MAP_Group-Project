@@ -84,14 +84,8 @@ const ProfileScreen = ({ navigation }) => {
         <View style={styles.buttonContainer}>
           <Button
             title="Edit Profile"
-            onPress={() => {}}
+            onPress={() => navigation.navigate('EditProfile')}
             style={styles.button}
-          />
-          <Button
-            title="Change Password"
-            onPress={() => {}}
-            style={[styles.button, styles.secondaryButton]}
-            textStyle={styles.secondaryButtonText}
           />
           <Button
             title="Logout"

@@ -20,6 +20,7 @@ import EventCreationScreen from '../screens/EventCreationScreen';
 import LoginScreen from '../screens/LoginScreen';
 import SignupScreen from '../screens/SignupScreen';
 import AnnouncementsScreen from '../screens/AnnouncementsScreen';
+import EditProfileScreen from '../screens/EditProfileScreen';
 
 import { AuthContext, AuthProvider } from '../context/AuthContext';
 
@@ -128,9 +129,11 @@ const ProfileStackNavigator = () => {
       }}
     >
       <ProfileStack.Screen name="Profile" component={ProfileScreen} options={{ title: 'Profile' }} />
+      <ProfileStack.Screen name="EditProfile" component={EditProfileScreen} options={{ title: 'Edit Profile' }} />
     </ProfileStack.Navigator>
   );
 };
+
 
 const AuthStackNavigator = () => {
   return (
