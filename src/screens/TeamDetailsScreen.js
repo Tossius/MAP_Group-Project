@@ -37,6 +37,21 @@ const TeamDetailsScreen = ({ route, navigation }) => {
         const teamPlayers = allPlayers.filter(p => p.teamId === teamId);
         setPlayers(teamPlayers);
         
+        // Enhanced Debug: Log the players data to check structure
+        console.log('=== PLAYER DATA DEBUG ===');
+        console.log('Total Team Players:', teamPlayers.length);
+        teamPlayers.forEach((player, index) => {
+          console.log(`Player ${index + 1}:`, JSON.stringify(player, null, 2));
+          console.log(`Player ${index + 1} keys:`, Object.keys(player));
+          console.log(`Player ${index + 1} age-related properties:`, {
+            age: player.age,
+            playerAge: player.playerAge,
+            dateOfBirth: player.dateOfBirth,
+            dob: player.dob,
+            birthDate: player.birthDate,
+          });
+        });
+        
       } catch (error) {
         console.error('Error fetching team details:', error);
         setError('Failed to load team details');
@@ -48,6 +63,68 @@ const TeamDetailsScreen = ({ route, navigation }) => {
     fetchData();
   }, [teamId]);
   
+  // Function to calculate age from date of birth
+  const calculateAge = (dateOfBirth) => {
+    if (!dateOfBirth) return null;
+    
+    const today = new Date();
+    const birthDate = new Date(dateOfBirth);
+    
+    if (isNaN(birthDate.getTime())) return null;
+    
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    
+    return age;
+  };
+  
+  // Function to get player age with multiple fallback options
+  const getPlayerAge = (player) => {
+    // Try direct age property first
+    if (player.age !== undefined && player.age !== null && player.age !== '') {
+      return player.age;
+    }
+    
+    // Try playerAge property
+    if (player.playerAge !== undefined && player.playerAge !== null && player.playerAge !== '') {
+      return player.playerAge;
+    }
+    
+    // Try to calculate from date of birth variants
+    const dobFields = ['dateOfBirth', 'dob', 'birthDate', 'date_of_birth'];
+    for (const field of dobFields) {
+      if (player[field]) {
+        const calculatedAge = calculateAge(player[field]);
+        if (calculatedAge !== null) {
+          return calculatedAge;
+        }
+      }
+    }
+    
+    return null;
+  };
+  
+  // Function to get player name with fallbacks
+  const getPlayerName = (player) => {
+    return player.name || 
+           player.playerName || 
+           player.fullName || 
+           `${player.firstName || ''} ${player.lastName || ''}`.trim() ||
+           'Unknown Player';
+  };
+  
+  // Function to get player position with fallbacks
+  const getPlayerPosition = (player) => {
+    return player.position || 
+           player.playerPosition || 
+           player.pos || 
+           'No Position';
+  };
+  
   // Mock upcoming matches (we'll keep this as mock data for now)
   const [upcomingMatches, setUpcomingMatches] = useState([
     { id: '1', opponent: 'Coastal Hockey Club', date: '2025-06-10', venue: 'Home' },
@@ -55,17 +132,36 @@ const TeamDetailsScreen = ({ route, navigation }) => {
     { id: '3', opponent: 'Namibia Defense Force', date: '2025-06-24', venue: 'Home' },
   ]);
   
-  const renderPlayerItem = ({ item }) => (
-    <Card style={styles.playerCard} onPress={() => navigation.navigate('PlayersTab', { screen: 'PlayerDetails', params: { playerId: item.id } })}>
-      <View style={styles.playerInfo}>
-        <Text style={styles.playerName}>{item.name}</Text>
-        <View style={styles.playerDetails}>
-          <Text style={styles.playerPosition}>{item.position}</Text>
-          <Text style={styles.playerAge}>Age: {item.age}</Text>
+  const renderPlayerItem = ({ item }) => {
+    const playerName = getPlayerName(item);
+    const playerPosition = getPlayerPosition(item);
+    const playerAge = getPlayerAge(item);
+    
+    // Debug: Log processed player data
+    console.log(`Rendering player: ${playerName}`);
+    console.log(`- Position: ${playerPosition}`);
+    console.log(`- Age: ${playerAge}`);
+    console.log(`- Raw data:`, JSON.stringify(item, null, 2));
+    
+    return (
+      <Card style={styles.playerCard} onPress={() => navigation.navigate('PlayersTab', { screen: 'PlayerDetails', params: { playerId: item.id } })}>
+        <View style={styles.playerInfo}>
+          <View style={styles.playerMainInfo}>
+            <Text style={styles.playerName}>{playerName}</Text>
+            <Text style={styles.playerPosition}>{playerPosition}</Text>
+          </View>
+          <View style={styles.playerSecondaryInfo}>
+            <Text style={styles.playerAge}>
+              Age: {playerAge !== null ? playerAge : 'N/A'}
+            </Text>
+          </View>
+          
+      
+          
         </View>
-      </View>
-    </Card>
-  );
+      </Card>
+    );
+  };
   
   const renderMatchItem = ({ item }) => (
     <Card style={styles.matchCard}>
@@ -148,7 +244,7 @@ const TeamDetailsScreen = ({ route, navigation }) => {
         </Card>
         
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Players</Text>
+          <Text style={styles.sectionTitle}>Players ({players.length})</Text>
           <Button 
             title="Add Player" 
             onPress={() => navigation.navigate('PlayersTab', {
@@ -160,12 +256,18 @@ const TeamDetailsScreen = ({ route, navigation }) => {
           />
         </View>
         
-        <FlatList
-          data={players}
-          keyExtractor={item => item.id}
-          renderItem={renderPlayerItem}
-          scrollEnabled={false}
-        />
+        {players.length === 0 ? (
+          <Card style={styles.emptyStateCard}>
+            <Text style={styles.emptyStateText}>No players registered yet</Text>
+          </Card>
+        ) : (
+          <FlatList
+            data={players}
+            keyExtractor={item => item.id}
+            renderItem={renderPlayerItem}
+            scrollEnabled={false}
+          />
+        )}
         
         <Text style={styles.sectionTitle}>Upcoming Matches</Text>
         
@@ -286,27 +388,51 @@ const styles = StyleSheet.create({
     padding: 12,
   },
   playerInfo: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: 'column',
+  },
+  playerMainInfo: {
+    marginBottom: 4,
   },
   playerName: {
     fontSize: 16,
     fontWeight: 'bold',
     color: Colors.secondary,
-  },
-  playerDetails: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    marginBottom: 2,
   },
   playerPosition: {
     fontSize: 14,
     color: Colors.primary,
-    marginRight: 12,
+    fontWeight: '500',
+  },
+  playerSecondaryInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   playerAge: {
     fontSize: 14,
     color: Colors.secondary,
+    opacity: 0.8,
+  },
+  debugInfo: {
+    marginTop: 8,
+    padding: 8,
+    backgroundColor: '#f0f0f0',
+    borderRadius: 4,
+  },
+  debugText: {
+    fontSize: 10,
+    color: '#666',
+    fontFamily: 'monospace',
+  },
+  emptyStateCard: {
+    padding: 16,
+  },
+  emptyStateText: {
+    fontSize: 16,
+    color: Colors.secondary,
+    opacity: 0.6,
+    fontStyle: 'italic',
+    textAlign: 'center',
   },
   matchesList: {
     marginBottom: 16,
