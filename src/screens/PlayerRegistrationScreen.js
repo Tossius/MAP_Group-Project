@@ -119,7 +119,7 @@ const PlayerRegistrationScreen = ({ navigation }) => {
         <View style={styles.container}>
         <Text style={styles.title}>Player Registration</Text>
         <Text style={styles.subtitle}>Register as a player in the Namibia Hockey Union</Text>
-
+        
         <View style={styles.formGroup}>
           <Text style={styles.label}>First Name *</Text>
           <TextInput
@@ -138,23 +138,27 @@ const PlayerRegistrationScreen = ({ navigation }) => {
             onChangeText={setLastName}
             placeholder="Enter last name"
           />
-        </View>
-
-        <View style={styles.formGroup}>
+       </View>
+      <View style={styles.formGroup}>
           <Text style={styles.label}>Date of Birth *</Text>
-          <Button
-            title={dateOfBirth.toLocaleDateString()}
-            onPress={() => setShowDatePicker(true)}
-            style={styles.dateButton}
-          />
-          {showDatePicker && (
-            <DateTimePicker
-              value={dateOfBirth}
-              mode="date"
-              display="default"
-              onChange={handleDateChange}
-            />
-          )}
+          <TouchableOpacity
+          style={styles.dateField}
+          onPress={() => setShowDatePicker(true)}
+          >
+             <Text style={styles.dateText}>
+               {dateOfBirth.toLocaleDateString()}
+
+           </Text>
+            <Ionicons name="calendar-outline" size={20} color={Colors.secondary} />
+           </TouchableOpacity>
+         {showDatePicker && (
+               <DateTimePicker
+                 value={dateOfBirth}
+                 mode="date"
+                 display="default"
+                 onChange={handleDateChange}
+             />
+           )}
         </View>
 
         <View style={styles.formGroup}>
