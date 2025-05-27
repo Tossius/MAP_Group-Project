@@ -14,7 +14,7 @@ const EventRegistrationScreen = ({ route, navigation }) => {
   const [selectedTeamName, setSelectedTeamName] = useState('Select a team');
   const [showTeamModal, setShowTeamModal] = useState(false);
   const [teamOptions, setTeamOptions] = useState([]);
-  const [minimumPlayers, setMinimumPlayers] = useState(2); // Minimum players required for an event
+  const [minimumPlayers, setMinimumPlayers] = useState(11); // Minimum players required for an event
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   
@@ -292,7 +292,7 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 16,
-    color: Colors.secondary,
+    color: Colors.text,
     marginBottom: 24,
   },
   eventInfoCard: {
@@ -321,12 +321,12 @@ const styles = StyleSheet.create({
   },
   eventInfoValue: {
     fontSize: 14,
-    color: Colors.secondary,
+    color: Colors.text,
     flex: 1,
   },
   eventDescription: {
     fontSize: 14,
-    color: Colors.secondary,
+    color: Colors.text,
     marginTop: 12,
     fontStyle: 'italic',
   },
@@ -336,6 +336,7 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 16,
     marginBottom: 8,
+    fontWeight: 'bold',
     color: Colors.secondary,
   },
   selectField: {
@@ -351,7 +352,7 @@ const styles = StyleSheet.create({
   },
   selectText: {
     fontSize: 16,
-    color: Colors.secondary,
+    color: Colors.text,
   },
   placeholderText: {
     fontSize: 16,
@@ -387,7 +388,7 @@ const styles = StyleSheet.create({
   },
   modalOptionText: {
     fontSize: 16,
-    color: Colors.secondary,
+    color: Colors.text,
   },
   selectedOptionText: {
     color: Colors.primary,
@@ -450,7 +451,7 @@ const styles = StyleSheet.create({
   },
   termsText: {
     fontSize: 14,
-    color: Colors.secondary,
+    color: Colors.text,
     flex: 1,
     marginLeft: 8,
   },

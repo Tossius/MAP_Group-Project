@@ -270,7 +270,7 @@ const styles = StyleSheet.create({
   infoText: {
     marginLeft: 4,
     fontSize: 14,
-    color: Colors.secondary,
+    color: Colors.text,
   },
   registrationContainer: {
     flexDirection: 'row',
@@ -282,7 +282,7 @@ const styles = StyleSheet.create({
   },
   deadlineText: {
     fontSize: 12,
-    color: Colors.secondary,
+    color: Colors.text,
   },
   registerButton: {
     paddingVertical: 6,

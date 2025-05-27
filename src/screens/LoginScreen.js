@@ -7,6 +7,8 @@ import Card from '../components/Card';
 import Colors from '../constants/colors';
 import { loginUser } from '../utils/storage';
 import { AuthContext } from '../context/AuthContext';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
 
 const LoginScreen = ({ navigation }) => {
   const { signIn } = useContext(AuthContext);
@@ -38,6 +40,16 @@ const LoginScreen = ({ navigation }) => {
       setError(error.message || 'Failed to login. Please check your credentials.');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleClearStorage = async () => {
+    try {
+      await AsyncStorage.clear();
+      Alert.alert('Success', 'Local storage cleared.');
+    } catch (error) {
+      console.error('Storage clear error:', error);
+      Alert.alert('Error', 'Failed to clear local storage.');
     }
   };
 
@@ -80,6 +92,12 @@ const LoginScreen = ({ navigation }) => {
           <Button
             title={isLoading ? "Logging in..." : "Login"}
             onPress={handleLogin}
+            disabled={isLoading}
+          />
+
+          <Button
+            title="Clear Storage"
+            onPress={handleClearStorage}
             disabled={isLoading}
           />
           

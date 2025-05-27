@@ -174,12 +174,12 @@ const styles = StyleSheet.create({
   },
   infoText: {
     fontSize: 16,
-    color: Colors.secondary,
+    color: Colors.text,
     marginLeft: 12,
   },
   description: {
     fontSize: 16,
-    color: Colors.secondary,
+    color: Colors.text,
     lineHeight: 24,
   },
   scheduleItem: {
@@ -197,7 +197,7 @@ const styles = StyleSheet.create({
   scheduleDescription: {
     flex: 1,
     fontSize: 16,
-    color: Colors.secondary,
+    color: Colors.text,
   },
   registrationContainer: {
     marginVertical: 16,

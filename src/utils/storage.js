@@ -17,6 +17,7 @@ const storeData = async (key, value) => {
   try {
     const jsonValue = JSON.stringify(value);
     await AsyncStorage.setItem(key, jsonValue);
+    console.log(`✅ Stored data for ${key}:`, value); // Debug log
     return true;
   } catch (error) {
     console.error(`Error storing data for ${key}:`, error);
@@ -27,7 +28,9 @@ const storeData = async (key, value) => {
 const getData = async (key) => {
   try {
     const jsonValue = await AsyncStorage.getItem(key);
-    return jsonValue != null ? JSON.parse(jsonValue) : null;
+    const result = jsonValue != null ? JSON.parse(jsonValue) : null;
+    console.log(`✅ Retrieved data for ${key}:`, result); // Debug log
+    return result;
   } catch (error) {
     console.error(`Error retrieving data for ${key}:`, error);
     return null;
@@ -37,123 +40,6 @@ const getData = async (key) => {
 // Generate unique ID
 const generateId = () => {
   return Date.now().toString() + Math.random().toString(36).substr(2, 9);
-};
-
-// Teams
-export const getTeams = async () => {
-  const teams = await getData(STORAGE_KEYS.TEAMS);
-  return teams || [];
-};
-
-export const saveTeam = async (team) => {
-  const teams = await getTeams();
-  
-  // If team has an id, it's an update
-  if (team.id) {
-    const updatedTeams = teams.map(t => t.id === team.id ? team : t);
-    return storeData(STORAGE_KEYS.TEAMS, updatedTeams);
-  } else {
-    // New team
-    const newTeam = {
-      ...team,
-      id: generateId(),
-    };
-    return storeData(STORAGE_KEYS.TEAMS, [...teams, newTeam]);
-  }
-};
-
-export const deleteTeam = async (teamId) => {
-  const teams = await getTeams();
-  const filteredTeams = teams.filter(team => team.id !== teamId);
-  return storeData(STORAGE_KEYS.TEAMS, filteredTeams);
-};
-
-// Players
-export const getPlayers = async () => {
-  const players = await getData(STORAGE_KEYS.PLAYERS);
-  return players || [];
-};
-
-export const savePlayer = async (player) => {
-  const players = await getPlayers();
-  
-  // If player has an id, it's an update
-  if (player.id) {
-    const updatedPlayers = players.map(p => p.id === player.id ? player : p);
-    return storeData(STORAGE_KEYS.PLAYERS, updatedPlayers);
-  } else {
-    // New player
-    const newPlayer = {
-      ...player,
-      id: generateId(),
-    };
-    return storeData(STORAGE_KEYS.PLAYERS, [...players, newPlayer]);
-  }
-};
-
-export const deletePlayer = async (playerId) => {
-  const players = await getPlayers();
-  const filteredPlayers = players.filter(player => player.id !== playerId);
-  return storeData(STORAGE_KEYS.PLAYERS, filteredPlayers);
-};
-
-// Events
-export const getEvents = async () => {
-  const events = await getData(STORAGE_KEYS.EVENTS);
-  return events || [];
-};
-
-export const saveEvent = async (event) => {
-  const events = await getEvents();
-  
-  // If event has an id, it's an update
-  if (event.id) {
-    const updatedEvents = events.map(e => e.id === event.id ? event : e);
-    return storeData(STORAGE_KEYS.EVENTS, updatedEvents);
-  } else {
-    // New event
-    const newEvent = {
-      ...event,
-      id: generateId(),
-    };
-    return storeData(STORAGE_KEYS.EVENTS, [...events, newEvent]);
-  }
-};
-
-export const deleteEvent = async (eventId) => {
-  const events = await getEvents();
-  const filteredEvents = events.filter(event => event.id !== eventId);
-  return storeData(STORAGE_KEYS.EVENTS, filteredEvents);
-};
-
-// Event Registrations
-export const getEventRegistrations = async () => {
-  const registrations = await getData(STORAGE_KEYS.EVENT_REGISTRATIONS);
-  return registrations || [];
-};
-
-export const saveEventRegistration = async (registration) => {
-  const registrations = await getEventRegistrations();
-  
-  // If registration has an id, it's an update
-  if (registration.id) {
-    const updatedRegistrations = registrations.map(r => r.id === registration.id ? registration : r);
-    return storeData(STORAGE_KEYS.EVENT_REGISTRATIONS, updatedRegistrations);
-  } else {
-    // New registration
-    const newRegistration = {
-      ...registration,
-      id: generateId(),
-      registrationDate: new Date().toISOString(),
-    };
-    return storeData(STORAGE_KEYS.EVENT_REGISTRATIONS, [...registrations, newRegistration]);
-  }
-};
-
-export const deleteEventRegistration = async (registrationId) => {
-  const registrations = await getEventRegistrations();
-  const filteredRegistrations = registrations.filter(registration => registration.id !== registrationId);
-  return storeData(STORAGE_KEYS.EVENT_REGISTRATIONS, filteredRegistrations);
 };
 
 // User Authentication Functions
@@ -183,7 +69,7 @@ export const registerUser = async (userData) => {
       username: userData.username,
       password: userData.password, // In a real app, this should be hashed
       email: userData.email,
-      isAdmin: false, // New users are not admins by default
+      role: userData.role || 'user', // Default to 'user' if no role specified
       createdAt: new Date().toISOString()
     };
     
@@ -202,19 +88,35 @@ export const registerUser = async (userData) => {
 
 export const loginUser = async (username, password) => {
   try {
+    console.log(`🔐 Attempting login for username: ${username}`);
     const users = await getUsers();
+    console.log(`👥 All users in storage:`, users);
     
     // Find user with matching credentials
     const user = users.find(u => u.username === username && u.password === password);
+    console.log(`🔍 Found user:`, user);
+    
     if (!user) {
       throw new Error('Invalid username or password');
     }
     
-    // Save current user to storage
-    const { password: pwd, ...userWithoutPassword } = user;
-    await storeData(STORAGE_KEYS.CURRENT_USER, userWithoutPassword);
+    // Create user object without password but WITH role
+    const userForStorage = {
+      id: user.id,
+      username: user.username,
+      email: user.email,
+      role: user.role, // Make sure role is explicitly included
+      createdAt: user.createdAt,
+      team: user.team || null,
+      position: user.position || null
+    };
     
-    return userWithoutPassword;
+    console.log(`💾 Saving current user:`, userForStorage);
+    
+    // Save current user to storage
+    await storeData(STORAGE_KEYS.CURRENT_USER, userForStorage);
+    
+    return userForStorage;
   } catch (error) {
     console.error('Error logging in:', error);
     throw error;
@@ -224,6 +126,7 @@ export const loginUser = async (username, password) => {
 export const getCurrentUser = async () => {
   try {
     const user = await getData(STORAGE_KEYS.CURRENT_USER);
+    console.log(`👤 getCurrentUser result:`, user);
     return user || null;
   } catch (error) {
     console.error('Error getting current user:', error);
@@ -231,76 +134,35 @@ export const getCurrentUser = async () => {
   }
 };
 
-export const logoutUser = async () => {
+export const setCurrentUser = async (updatedUser) => {
   try {
-    await AsyncStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
-    return true;
+    // Make sure we don't accidentally save password and DO save role
+    const userForStorage = {
+      id: updatedUser.id,
+      username: updatedUser.username,
+      email: updatedUser.email,
+      role: updatedUser.role, // Explicitly include role
+      createdAt: updatedUser.createdAt,
+      team: updatedUser.team || null,
+      position: updatedUser.position || null
+    };
+    
+    console.log(`💾 setCurrentUser - saving:`, userForStorage);
+    return await storeData(STORAGE_KEYS.CURRENT_USER, userForStorage);
   } catch (error) {
-    console.error('Error logging out:', error);
+    console.error('Error setting current user:', error);
     return false;
   }
 };
 
-// Announcement Functions
-export const getAnnouncements = async () => {
+export const logoutUser = async () => {
   try {
-    const data = await getData(STORAGE_KEYS.ANNOUNCEMENTS);
-    return data || [];
-  } catch (error) {
-    console.error('Error getting announcements:', error);
-    return [];
-  }
-};
-
-export const createAnnouncement = async (announcementData, user) => {
-  try {
-    // Check if user is admin
-    if (!user || !user.isAdmin) {
-      throw new Error('Only administrators can create announcements');
-    }
-    
-    const announcements = await getAnnouncements();
-    
-    // Create new announcement
-    const newAnnouncement = {
-      id: generateId(),
-      title: announcementData.title,
-      content: announcementData.content,
-      createdBy: user.username,
-      createdAt: new Date().toISOString(),
-      important: announcementData.important || false
-    };
-    
-    // Add to announcements array and save
-    announcements.unshift(newAnnouncement); // Add to beginning of array
-    await storeData(STORAGE_KEYS.ANNOUNCEMENTS, announcements);
-    
-    return newAnnouncement;
-  } catch (error) {
-    console.error('Error creating announcement:', error);
-    throw error;
-  }
-};
-
-export const deleteAnnouncement = async (announcementId, user) => {
-  try {
-    // Check if user is admin
-    if (!user || !user.isAdmin) {
-      throw new Error('Only administrators can delete announcements');
-    }
-    
-    const announcements = await getAnnouncements();
-    
-    // Filter out the announcement to delete
-    const updatedAnnouncements = announcements.filter(a => a.id !== announcementId);
-    
-    // Save updated announcements
-    await storeData(STORAGE_KEYS.ANNOUNCEMENTS, updatedAnnouncements);
-    
+    await AsyncStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
+    console.log(`🚪 User logged out - current user cleared`);
     return true;
   } catch (error) {
-    console.error('Error deleting announcement:', error);
-    throw error;
+    console.error('Error logging out:', error);
+    return false;
   }
 };
 
@@ -322,10 +184,20 @@ export const updateUser = async (updatedUser) => {
 
     await storeData(STORAGE_KEYS.USERS, updatedUsers);
 
-    // Return user without password
+    // Return user without password and sync current user
     const savedUser = updatedUsers.find(u => u.id === updatedUser.id);
-    const { password, ...userWithoutPassword } = savedUser;
-    return userWithoutPassword;
+    const userForStorage = {
+      id: savedUser.id,
+      username: savedUser.username,
+      email: savedUser.email,
+      role: savedUser.role, // Make sure role is preserved
+      createdAt: savedUser.createdAt,
+      team: savedUser.team || null,
+      position: savedUser.position || null
+    };
+    
+    await setCurrentUser(userForStorage); // Sync current user
+    return userForStorage;
 
   } catch (error) {
     console.error('Error updating user:', error);
@@ -336,6 +208,22 @@ export const updateUser = async (updatedUser) => {
 // Initialize storage with sample data
 export const initializeStorage = async () => {
   try {
+    // Initialize users with default admin account if none exist
+    const users = await getUsers();
+    if (users.length === 0) {
+      const defaultAdmin = {
+        id: generateId(),
+        username: 'admin123',
+        password: '12345', // In a real app, this should be hashed
+        role: 'admin', // Make sure this is set correctly
+        email: 'admin@hockeyapp.com',
+        createdAt: new Date().toISOString()
+      };
+      
+      console.log(`🔧 Initializing with default admin:`, defaultAdmin);
+      await storeData(STORAGE_KEYS.USERS, [defaultAdmin]);
+    }
+    
     // Check if teams exist, if not, initialize with sample data
     const teams = await getTeams();
     if (teams.length === 0) {
@@ -420,20 +308,6 @@ export const initializeStorage = async () => {
       await storeData(STORAGE_KEYS.EVENTS, sampleEvents);
     }
     
-    // Initialize users with default admin account if none exist
-    const users = await getUsers();
-    if (users.length === 0) {
-      const defaultAdmin = {
-        id: generateId(),
-        username: 'admin123',
-        password: '12345', // In a real app, this should be hashed
-        isAdmin: true,
-        email: 'admin@hockeyapp.com',
-        createdAt: new Date().toISOString()
-      };
-      await storeData(STORAGE_KEYS.USERS, [defaultAdmin]);
-    }
-    
     // Initialize announcements if none exist
     const announcements = await getAnnouncements();
     if (announcements.length === 0) {
@@ -448,8 +322,198 @@ export const initializeStorage = async () => {
       await storeData(STORAGE_KEYS.ANNOUNCEMENTS, [welcomeAnnouncement]);
     }
 
-    console.log('Async storage initialized successfully');
+    console.log('✅ Async storage initialized successfully');
   } catch (error) {
-    console.error('Error initializing storage:', error);
+    console.error('❌ Error initializing storage:', error);
   }
+};
+
+// Teams (keeping the existing functions)
+export const getTeams = async () => {
+  const teams = await getData(STORAGE_KEYS.TEAMS);
+  return teams || [];
+};
+
+export const saveTeam = async (team) => {
+  const teams = await getTeams();
+  
+  if (team.id) {
+    const updatedTeams = teams.map(t => t.id === team.id ? team : t);
+    return storeData(STORAGE_KEYS.TEAMS, updatedTeams);
+  } else {
+    const newTeam = { ...team, id: generateId() };
+    return storeData(STORAGE_KEYS.TEAMS, [...teams, newTeam]);
+  }
+};
+
+export const deleteTeam = async (teamId) => {
+  const teams = await getTeams();
+  const filteredTeams = teams.filter(team => team.id !== teamId);
+  return storeData(STORAGE_KEYS.TEAMS, filteredTeams);
+};
+
+// Players (keeping the existing functions)
+export const getPlayers = async () => {
+  const players = await getData(STORAGE_KEYS.PLAYERS);
+  return players || [];
+};
+
+export const savePlayer = async (player) => {
+  const players = await getPlayers();
+  
+  if (player.id) {
+    const updatedPlayers = players.map(p => p.id === player.id ? player : p);
+    return storeData(STORAGE_KEYS.PLAYERS, updatedPlayers);
+  } else {
+    const newPlayer = { ...player, id: generateId() };
+    return storeData(STORAGE_KEYS.PLAYERS, [...players, newPlayer]);
+  }
+};
+
+export const deletePlayer = async (playerId) => {
+  const players = await getPlayers();
+  const filteredPlayers = players.filter(player => player.id !== playerId);
+  return storeData(STORAGE_KEYS.PLAYERS, filteredPlayers);
+};
+
+// Events (keeping the existing functions)
+export const getEvents = async () => {
+  const events = await getData(STORAGE_KEYS.EVENTS);
+  return events || [];
+};
+
+export const saveEvent = async (event) => {
+  const events = await getEvents();
+  
+  if (event.id) {
+    const updatedEvents = events.map(e => e.id === event.id ? event : e);
+    return storeData(STORAGE_KEYS.EVENTS, updatedEvents);
+  } else {
+    const newEvent = { ...event, id: generateId() };
+    return storeData(STORAGE_KEYS.EVENTS, [...events, newEvent]);
+  }
+};
+
+export const deleteEvent = async (eventId) => {
+  const events = await getEvents();
+  const filteredEvents = events.filter(event => event.id !== eventId);
+  return storeData(STORAGE_KEYS.EVENTS, filteredEvents);
+};
+
+// Event Registrations (keeping the existing functions)
+export const getEventRegistrations = async () => {
+  const registrations = await getData(STORAGE_KEYS.EVENT_REGISTRATIONS);
+  return registrations || [];
+};
+
+export const saveEventRegistration = async (registration) => {
+  const registrations = await getEventRegistrations();
+  
+  if (registration.id) {
+    const updatedRegistrations = registrations.map(r => r.id === registration.id ? registration : r);
+    return storeData(STORAGE_KEYS.EVENT_REGISTRATIONS, updatedRegistrations);
+  } else {
+    const newRegistration = {
+      ...registration,
+      id: generateId(),
+      registrationDate: new Date().toISOString(),
+    };
+    return storeData(STORAGE_KEYS.EVENT_REGISTRATIONS, [...registrations, newRegistration]);
+  }
+};
+
+export const deleteEventRegistration = async (registrationId) => {
+  const registrations = await getEventRegistrations();
+  const filteredRegistrations = registrations.filter(registration => registration.id !== registrationId);
+  return storeData(STORAGE_KEYS.EVENT_REGISTRATIONS, filteredRegistrations);
+};
+
+// Announcements (keeping the existing functions)
+export const getAnnouncements = async () => {
+  try {
+    const data = await getData(STORAGE_KEYS.ANNOUNCEMENTS);
+    return data || [];
+  } catch (error) {
+    console.error('Error getting announcements:', error);
+    return [];
+  }
+};
+
+export const createAnnouncement = async (announcementData, user) => {
+  try {
+    // Check if user is admin or manager
+    if (!user || (user.role !== 'admin' && user.role !== 'manager')) {
+      throw new Error('Only administrators and managers can create announcements');
+    }
+    
+    const announcements = await getAnnouncements();
+    
+    // Create new announcement
+    const newAnnouncement = {
+      id: generateId(),
+      title: announcementData.title,
+      content: announcementData.content,
+      createdBy: user.username,
+      createdAt: new Date().toISOString(),
+      important: announcementData.important || false
+    };
+    
+    // Add to announcements array and save
+    announcements.unshift(newAnnouncement); // Add to beginning of array
+    await storeData(STORAGE_KEYS.ANNOUNCEMENTS, announcements);
+    
+    return newAnnouncement;
+  } catch (error) {
+    console.error('Error creating announcement:', error);
+    throw error;
+  }
+};
+
+export const deleteAnnouncement = async (announcementId, user) => {
+  try {
+    // Check if user is admin or manager
+    if (!user || (user.role !== 'admin' && user.role !== 'manager')) {
+      throw new Error('Only administrators and managers can delete announcements');
+    }
+    
+    const announcements = await getAnnouncements();
+    
+    // Filter out the announcement to delete
+    const updatedAnnouncements = announcements.filter(a => a.id !== announcementId);
+    
+    // Save updated announcements
+    await storeData(STORAGE_KEYS.ANNOUNCEMENTS, updatedAnnouncements);
+    
+    return true;
+  } catch (error) {
+    console.error('Error deleting announcement:', error);
+    throw error;
+  }
+};
+
+// Default export with all functions
+export default {
+  getUsers,
+  registerUser,
+  loginUser,
+  getCurrentUser,
+  setCurrentUser,
+  logoutUser,
+  updateUser,
+  getTeams,
+  saveTeam,
+  deleteTeam,
+  getPlayers,
+  savePlayer,
+  deletePlayer,
+  getEvents,
+  saveEvent,
+  deleteEvent,
+  getEventRegistrations,
+  saveEventRegistration,
+  deleteEventRegistration,
+  getAnnouncements,
+  createAnnouncement,
+  deleteAnnouncement,
+  initializeStorage,
 };
