@@ -128,7 +128,7 @@ const HomeScreen = ({ navigation }) => {
           
           <TouchableOpacity 
             style={styles.mainActionButton}
-            onPress={() => navigation.navigate('PlayersTab')}
+            onPress={() => navigation.navigate('PlayersTab',{ screen: 'Players' })}
           >
             <View style={[styles.actionIconContainer, { backgroundColor: Colors.accent }]}>
               <Ionicons name="person" size={24} color={Colors.background} />
@@ -163,7 +163,7 @@ const HomeScreen = ({ navigation }) => {
             
             <TouchableOpacity 
               style={styles.quickActionItem}
-              onPress={() => navigation.navigate('EventsTab', { screen: 'EventRegistration' })}
+              onPress={() => navigation.navigate('EventsTab', { screen: 'EventRegistration',})}
             >
               <View style={styles.quickActionIcon}>
                 <Ionicons name="calendar-outline" size={22} color={Colors.primary} />
