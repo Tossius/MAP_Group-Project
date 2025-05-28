@@ -15,28 +15,7 @@ const ProfileScreen = ({ navigation }) => {
   const [showRoleRequest, setShowRoleRequest] = useState(false);
   const [requestedRole, setRequestedRole] = useState('manager');
   const [hasPendingRequest, setHasPendingRequest] = useState(false);
-  const [debugInfo, setDebugInfo] = useState(null);
 
-  // Debug function to check user data
-  const debugUserData = async () => {
-    try {
-      const currentUser = await getCurrentUser();
-      console.log('=== DEBUG INFO ===');
-      console.log('User from AuthContext:', JSON.stringify(user, null, 2));
-      console.log('User from getCurrentUser():', JSON.stringify(currentUser, null, 2));
-      
-      setDebugInfo({
-        contextUser: user,
-        storageUser: currentUser
-      });
-    } catch (error) {
-      console.error('Debug error:', error);
-    }
-  };
-
-  useEffect(() => {
-    debugUserData();
-  }, [user]);
 
   const handleLogout = async () => {
     try {
@@ -95,7 +74,6 @@ const ProfileScreen = ({ navigation }) => {
         // You might need to update your AuthContext here
         // This depends on your AuthContext implementation
         console.log('Refreshed user data:', currentUser);
-        debugUserData();
       }
     } catch (error) {
       console.error('Error refreshing user data:', error);
@@ -105,30 +83,6 @@ const ProfileScreen = ({ navigation }) => {
   return (
     <ScrollView style={styles.screen}>
       <View style={styles.container}>
-        {/* Debug Information Card */}
-        {debugInfo && (
-          <Card style={[styles.infoCard, { backgroundColor: '#fff3cd' }]}>
-            <Text style={styles.cardTitle}>🐛 Debug Information</Text>
-            <Text style={styles.debugText}>
-              Context Role: {debugInfo.contextUser?.role || 'undefined'}
-            </Text>
-            <Text style={styles.debugText}>
-              Storage Role: {debugInfo.storageUser?.role || 'undefined'}
-            </Text>
-            <Text style={styles.debugText}>
-              Context Username: {debugInfo.contextUser?.username || 'undefined'}
-            </Text>
-            <Text style={styles.debugText}>
-              Storage Username: {debugInfo.storageUser?.username || 'undefined'}
-            </Text>
-            <Button 
-              title="Refresh Debug Info" 
-              onPress={handleRefreshUserData} 
-              style={[styles.button, { backgroundColor: '#ffc107' }]} 
-            />
-          </Card>
-        )}
-
         <View style={styles.profileHeader}>
           <View style={styles.profileImageContainer}>
             {userData.profileImage ? (
@@ -269,14 +223,8 @@ const styles = StyleSheet.create({
   },
   infoText: {
     fontSize: 16,
-    color: Colors.secondary,
+    color: Colors.text,
     marginLeft: 12,
-  },
-  debugText: {
-    fontSize: 14,
-    color: '#856404',
-    marginBottom: 4,
-    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
   },
   buttonContainer: { marginTop: 8 },
   button: { marginBottom: 12 },

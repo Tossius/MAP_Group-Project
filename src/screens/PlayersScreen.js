@@ -1,13 +1,15 @@
-import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, Text, FlatList, TextInput } from 'react-native';
+import React, { useState, useEffect, useContext } from 'react';
+import { StyleSheet, View, Text, FlatList, TextInput, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import Card from '../components/Card';
 import Button from '../components/Button';
 import Colors from '../constants/colors';
-import { getPlayers, getTeams } from '../utils/storage';
+import { AuthContext } from '../context/AuthContext';
+import { getPlayers, getTeams, deletePlayer } from '../utils/storage';
 
 const PlayersScreen = ({ navigation }) => {
+  const { user } = useContext(AuthContext);
   const [searchQuery, setSearchQuery] = useState('');
   const [players, setPlayers] = useState([]);
   const [teams, setTeams] = useState({});
@@ -98,6 +100,25 @@ const PlayersScreen = ({ navigation }) => {
     return age;
   };
 
+  // Handle player deletion
+  const handleDeletePlayer = async (playerId, playerName) => {
+    try {
+      await deletePlayer(playerId);
+      setPlayers(players.filter(player => player.id !== playerId));
+      Alert.alert('Success', 'Player deleted successfully!');
+    } catch (error) {
+      console.error('Error deleting player:', error);
+      Alert.alert('Error', 'Failed to delete player. Please try again.');
+    }
+  };
+
+  // Check user permissions
+  const userRole = user?.role || 'user';
+  const isAdmin = userRole === 'admin';
+  const isManager = userRole === 'manager';
+  const canRegisterPlayer = isAdmin || isManager;
+  const canDeletePlayer = isAdmin || isManager;
+
   const filteredPlayers = players.filter(player => 
     player.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     player.team.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -122,6 +143,25 @@ const PlayersScreen = ({ navigation }) => {
           <Text style={styles.infoText}>{item.position}</Text>
         </View>
       </View>
+      {canDeletePlayer && (
+        <View style={styles.actionContainer}>
+          <Button
+            title="Delete"
+            onPress={() => {
+              Alert.alert(
+                'Confirm Delete',
+                `Are you sure you want to delete ${item.name}?`,
+                [
+                  { text: 'Cancel', style: 'cancel' },
+                  { text: 'Delete', onPress: () => handleDeletePlayer(item.id, item.name), style: 'destructive' }
+                ]
+              );
+            }}
+            style={styles.deleteButton}
+            textStyle={styles.deleteButtonText}
+          />
+        </View>
+      )}
     </Card>
   );
 
@@ -129,12 +169,15 @@ const PlayersScreen = ({ navigation }) => {
     <View style={styles.screen}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Players</Text>
-        <Button 
-          title="Register New Player" 
-          onPress={() => navigation.navigate('PlayerRegistration')}
-          style={styles.registerButton}
-          textStyle={styles.registerButtonText}
-        />
+        {/* Only show Register New Player button for admins and managers */}
+        {canRegisterPlayer && (
+          <Button 
+            title="Register New Player" 
+            onPress={() => navigation.navigate('PlayerRegistration')}
+            style={styles.registerButton}
+            textStyle={styles.registerButtonText}
+          />
+        )}
       </View>
       
       <View style={styles.searchContainer}>
@@ -162,7 +205,8 @@ const PlayersScreen = ({ navigation }) => {
               <Text style={styles.emptyText}>
                 {searchQuery ? 'No players match your search' : 'No players found'}
               </Text>
-              {!searchQuery && (
+              {/* Only show Register New Player button for admins and managers in empty state */}
+              {!searchQuery && canRegisterPlayer && (
                 <Button
                   title="Register New Player"
                   onPress={() => navigation.navigate('PlayerRegistration')}
@@ -190,7 +234,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 16,
-    color: Colors.secondary,
+    color: Colors.text,
     marginBottom: 20,
     textAlign: 'center',
   },
@@ -280,7 +324,23 @@ const styles = StyleSheet.create({
   infoText: {
     marginLeft: 4,
     fontSize: 14,
-    color: Colors.secondary,
+    color: Colors.text,
+  },
+  actionContainer: {
+    borderTopWidth: 1,
+    borderTopColor: Colors.gray,
+    paddingTop: 8,
+    marginTop: 8,
+    alignItems: 'flex-end',
+  },
+  deleteButton: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    marginVertical: 0,
+    backgroundColor: Colors.accent,
+  },
+  deleteButtonText: {
+    fontSize: 12,
   },
 });
 

@@ -22,13 +22,7 @@ const EventDetailsScreen = ({ route, navigation }) => {
     contactEmail: 'events@namibiahockey.org',
     contactPhone: '+264 61 234 5678',
     description: 'The annual National Hockey Championship brings together the best teams from across Namibia to compete for the national title. The tournament features men\'s and women\'s divisions with teams from all regions of the country.',
-    schedule: [
-      { id: '1', time: '09:00', description: 'Opening Ceremony' },
-      { id: '2', time: '10:00', description: 'Group Stage Matches Begin' },
-      { id: '3', time: '13:00', description: 'Lunch Break' },
-      { id: '4', time: '14:00', description: 'Group Stage Matches Continue' },
-      { id: '5', time: '18:00', description: 'End of Day 1' },
-    ],
+    
   });
   
   // Mock registered teams

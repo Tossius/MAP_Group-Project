@@ -218,7 +218,7 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 10,
     fontSize: 16,
-    color: Colors.secondary,
+    color: Colors.text,
   },
   errorContainer: {
     flex: 1,
@@ -290,7 +290,7 @@ const styles = StyleSheet.create({
   },
   infoText: {
     fontSize: 16,
-    color: Colors.secondary,
+    color: Colors.text,
     marginLeft: 12,
   },
   statsContainer: {
@@ -310,12 +310,12 @@ const styles = StyleSheet.create({
   },
   statLabel: {
     fontSize: 14,
-    color: Colors.secondary,
+    color: Colors.text,
     marginTop: 4,
   },
   bio: {
     fontSize: 16,
-    color: Colors.secondary,
+    color: Colors.text,
     lineHeight: 24,
   },
   buttonContainer: {

@@ -349,7 +349,7 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 16,
-    color: Colors.secondary,
+    color: Colors.text,
     marginBottom: 24,
   },
   sectionTitle: {
@@ -364,6 +364,7 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 16,
+    fontWeight: 'bold',
     marginBottom: 8,
     color: Colors.secondary,
   },
@@ -388,7 +389,7 @@ const styles = StyleSheet.create({
   },
   selectText: {
     fontSize: 16,
-    color: Colors.secondary,
+    color: Colors.text,
   },
   placeholderText: {
     fontSize: 16,

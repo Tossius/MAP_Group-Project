@@ -1,13 +1,15 @@
-import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, Text, FlatList, TouchableOpacity } from 'react-native';
+import React, { useState, useEffect, useContext } from 'react';
+import { StyleSheet, View, Text, FlatList, TouchableOpacity, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import Card from '../components/Card';
 import Button from '../components/Button';
 import Colors from '../constants/colors';
-import { getTeams, getPlayers } from '../utils/storage';
+import { AuthContext } from '../context/AuthContext';
+import { getTeams, getPlayers, deleteTeam } from '../utils/storage';
 
 const TeamsScreen = ({ navigation }) => {
+  const { user } = useContext(AuthContext);
   const [teams, setTeams] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [playerCounts, setPlayerCounts] = useState({});
@@ -65,6 +67,36 @@ const TeamsScreen = ({ navigation }) => {
     return unsubscribe;
   }, [navigation]);
 
+  // Handle team deletion
+  const handleDeleteTeam = async (teamId, teamName) => {
+    try {
+      // Check if team has players
+      const playerCount = playerCounts[teamId] || 0;
+      if (playerCount > 0) {
+        Alert.alert(
+          'Cannot Delete Team',
+          `This team has ${playerCount} player(s). Please remove all players from the team before deleting it.`,
+          [{ text: 'OK' }]
+        );
+        return;
+      }
+
+      await deleteTeam(teamId);
+      setTeams(teams.filter(team => team.id !== teamId));
+      Alert.alert('Success', 'Team deleted successfully!');
+    } catch (error) {
+      console.error('Error deleting team:', error);
+      Alert.alert('Error', 'Failed to delete team. Please try again.');
+    }
+  };
+
+  // Check user permissions
+  const userRole = user?.role || 'user';
+  const isAdmin = userRole === 'admin';
+  const isManager = userRole === 'manager';
+  const canRegisterTeam = isAdmin || isManager;
+  const canDeleteTeam = isAdmin; // Only admins can delete teams
+
   const renderTeamItem = ({ item }) => (
     <Card style={styles.teamCard} onPress={() => navigation.navigate('TeamDetails', { teamId: item.id })}>
       <View style={styles.teamHeader}>
@@ -83,6 +115,25 @@ const TeamsScreen = ({ navigation }) => {
           <Text style={styles.infoText}>{playerCounts[item.id] || 0} Players</Text>
         </View>
       </View>
+      {canDeleteTeam && (
+        <View style={styles.actionContainer}>
+          <Button
+            title="Delete"
+            onPress={() => {
+              Alert.alert(
+                'Confirm Delete',
+                `Are you sure you want to delete ${item.name}?`,
+                [
+                  { text: 'Cancel', style: 'cancel' },
+                  { text: 'Delete', onPress: () => handleDeleteTeam(item.id, item.name), style: 'destructive' }
+                ]
+              );
+            }}
+            style={styles.deleteButton}
+            textStyle={styles.deleteButtonText}
+          />
+        </View>
+      )}
     </Card>
   );
 
@@ -90,12 +141,15 @@ const TeamsScreen = ({ navigation }) => {
     <View style={styles.screen}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Teams</Text>
-        <Button 
-          title="Register New Team" 
-          onPress={() => navigation.navigate('TeamRegistration')}
-          style={styles.registerButton}
-          textStyle={styles.registerButtonText}
-        />
+        {/* Only show Register New Team button for admins and managers */}
+        {canRegisterTeam && (
+          <Button 
+            title="Register New Team" 
+            onPress={() => navigation.navigate('TeamRegistration')}
+            style={styles.registerButton}
+            textStyle={styles.registerButtonText}
+          />
+        )}
       </View>
       
       {isLoading ? (
@@ -111,10 +165,13 @@ const TeamsScreen = ({ navigation }) => {
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
               <Text style={styles.emptyText}>No teams found</Text>
-              <Button
-                title="Register New Team"
-                onPress={() => navigation.navigate('TeamRegistration')}
-              />
+              {/* Only show Register New Team button for admins and managers in empty state */}
+              {canRegisterTeam && (
+                <Button
+                  title="Register New Team"
+                  onPress={() => navigation.navigate('TeamRegistration')}
+                />
+              )}
             </View>
           }
         />
@@ -137,7 +194,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 16,
-    color: Colors.secondary,
+    color: Colors.text,
     marginBottom: 20,
   },
   screen: {
@@ -207,7 +264,23 @@ const styles = StyleSheet.create({
   infoText: {
     marginLeft: 4,
     fontSize: 14,
-    color: Colors.secondary,
+    color: Colors.text,
+  },
+  actionContainer: {
+    borderTopWidth: 1,
+    borderTopColor: Colors.gray,
+    paddingTop: 8,
+    marginTop: 8,
+    alignItems: 'flex-end',
+  },
+  deleteButton: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    marginVertical: 0,
+    backgroundColor: Colors.accent,
+  },
+  deleteButtonText: {
+    fontSize: 12,
   },
 });
 

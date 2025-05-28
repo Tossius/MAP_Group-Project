@@ -1,13 +1,15 @@
-import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, Text, FlatList } from 'react-native';
+import React, { useState, useEffect, useContext } from 'react';
+import { StyleSheet, View, Text, FlatList, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import Card from '../components/Card';
 import Button from '../components/Button';
 import Colors from '../constants/colors';
+import { AuthContext } from '../context/AuthContext';
 import { getEvents, deleteEvent, initializeStorage } from '../utils/storage';
 
 const EventsScreen = ({ navigation }) => {
+  const { user } = useContext(AuthContext);
   const [events, setEvents] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   
@@ -66,25 +68,15 @@ const EventsScreen = ({ navigation }) => {
     
     const isRegistrationOpen = currentDate <= deadlineDate;
     
+    // Get user role and determine permissions
+    const userRole = user?.role || 'user';
+    const isAdmin = userRole === 'admin';
+    const isManager = userRole === 'manager';
+    const canRegister = isManager && isRegistrationOpen;
+    const canDelete = isAdmin;
+    
     return (
       <Card style={styles.eventCard} onPress={() => navigation.navigate('EventDetails', { eventId: item.id })}>
-        <View style={styles.deleteButtonContainer}>
-          <Button
-            title="Delete"
-            onPress={() => {
-              Alert.alert(
-                'Confirm Delete',
-                `Are you sure you want to delete ${item.title}?`,
-                [
-                  { text: 'Cancel', style: 'cancel' },
-                  { text: 'Delete', onPress: () => handleDeleteEvent(item.id), style: 'destructive' }
-                ]
-              );
-            }}
-            style={styles.deleteButton}
-            textStyle={styles.deleteButtonText}
-          />
-        </View>
         <View style={styles.eventHeader}>
           <Text style={styles.eventTitle}>{item.title}</Text>
           <View style={[
@@ -111,14 +103,33 @@ const EventsScreen = ({ navigation }) => {
           <Text style={styles.deadlineText}>
             Registration {isRegistrationOpen ? 'closes' : 'closed'} on {deadlineDate.toLocaleDateString()}
           </Text>
-          {isRegistrationOpen && (
-            <Button 
-              title="Register" 
-              onPress={() => navigation.navigate('EventRegistration', { eventId: item.id })}
-              style={styles.registerButton}
-              textStyle={styles.registerButtonText}
-            />
-          )}
+          <View style={styles.buttonContainer}>
+            {canRegister && (
+              <Button 
+                title="Register" 
+                onPress={() => navigation.navigate('EventRegistration', { eventId: item.id })}
+                style={styles.registerButton}
+                textStyle={styles.registerButtonText}
+              />
+            )}
+            {canDelete && (
+              <Button
+                title="Delete"
+                onPress={() => {
+                  Alert.alert(
+                    'Confirm Delete',
+                    `Are you sure you want to delete ${item.title}?`,
+                    [
+                      { text: 'Cancel', style: 'cancel' },
+                      { text: 'Delete', onPress: () => handleDeleteEvent(item.id), style: 'destructive' }
+                    ]
+                  );
+                }}
+                style={styles.deleteButton}
+                textStyle={styles.deleteButtonText}
+              />
+            )}
+          </View>
         </View>
       </Card>
     );
@@ -128,12 +139,15 @@ const EventsScreen = ({ navigation }) => {
     <View style={styles.screen}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Upcoming Events</Text>
-        <Button
-          title="Create"
-          onPress={() => navigation.navigate('EventCreation')}
-          style={styles.createButton}
-          textStyle={styles.createButtonText}
-        />
+        {/* Only show Create button for admins */}
+        {user?.role === 'admin' && (
+          <Button
+            title="Create"
+            onPress={() => navigation.navigate('EventCreation')}
+            style={styles.createButton}
+            textStyle={styles.createButtonText}
+          />
+        )}
       </View>
       
       {isLoading ? (
@@ -149,10 +163,13 @@ const EventsScreen = ({ navigation }) => {
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
               <Text style={styles.emptyText}>No events found</Text>
-              <Button
-                title="Create New Event"
-                onPress={() => navigation.navigate('EventCreation')}
-              />
+              {/* Only show Create New Event button for admins */}
+              {user?.role === 'admin' && (
+                <Button
+                  title="Create New Event"
+                  onPress={() => navigation.navigate('EventCreation')}
+                />
+              )}
             </View>
           }
         />
@@ -201,17 +218,16 @@ const styles = StyleSheet.create({
   createButtonText: {
     fontSize: 14,
   },
-  deleteButtonContainer: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    zIndex: 1,
+  buttonContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   deleteButton: {
-    paddingVertical: 4,
-    paddingHorizontal: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
     marginVertical: 0,
-    backgroundColor: Colors.danger,
+    marginLeft: 8,
+    backgroundColor:  Colors.accent,
   },
   deleteButtonText: {
     fontSize: 12,

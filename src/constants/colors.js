@@ -1,6 +1,6 @@
 export default {
-  primary: '#1E88E5',       // Blue primary color
-  secondary: '#4CAF50',     // Green as secondary accent
+  primary: '#1A4D8F',       // Blue primary color
+  secondary: '#2E7D4F',     // Green as secondary accent
   accent: '#F44336',        // Red accent color
   background: '#FFFFFF',    // White background
   text: '#000000',          // Black text

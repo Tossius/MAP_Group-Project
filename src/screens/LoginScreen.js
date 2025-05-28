@@ -58,8 +58,8 @@ const LoginScreen = ({ navigation }) => {
       <View style={styles.container}>
         <View style={styles.logoContainer}>
           <Ionicons name="football-outline" size={80} color={Colors.primary} />
-          <Text style={styles.appTitle}>Namibia Hockey</Text>
-          <Text style={styles.appSubtitle}>Team Management</Text>
+          <Text style={styles.appTitle}>NamHockey</Text>
+          <Text style={styles.appSubtitle}>Official Information and Team Management App</Text>
         </View>
         
         <Card style={styles.loginCard}>

@@ -251,6 +251,7 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 16,
+    fontWeight: 'bold',
     marginBottom: 8,
     color: Colors.secondary,
   },
@@ -275,7 +276,7 @@ const styles = StyleSheet.create({
   },
   selectText: {
     fontSize: 16,
-    color: Colors.secondary,
+    color: Colors.text,
   },
   placeholderText: {
     fontSize: 16,
@@ -311,7 +312,7 @@ const styles = StyleSheet.create({
   },
   modalOptionText: {
     fontSize: 16,
-    color: Colors.secondary,
+    color: Colors.text,
   },
   selectedOptionText: {
     color: Colors.primary,

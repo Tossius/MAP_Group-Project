@@ -297,7 +297,7 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 10,
     fontSize: 16,
-    color: Colors.secondary,
+    color: Colors.text,
   },
   errorContainer: {
     flex: 1,
@@ -353,12 +353,12 @@ const styles = StyleSheet.create({
   },
   infoText: {
     fontSize: 16,
-    color: Colors.secondary,
+    color: Colors.text,
     marginLeft: 12,
   },
   description: {
     fontSize: 16,
-    color: Colors.secondary,
+    color: Colors.text,
     lineHeight: 24,
   },
   sectionHeader: {
@@ -410,7 +410,7 @@ const styles = StyleSheet.create({
   },
   playerAge: {
     fontSize: 14,
-    color: Colors.secondary,
+    color: Colors.text,
     opacity: 0.8,
   },
   debugInfo: {
@@ -429,7 +429,7 @@ const styles = StyleSheet.create({
   },
   emptyStateText: {
     fontSize: 16,
-    color: Colors.secondary,
+    color: Colors.text,
     opacity: 0.6,
     fontStyle: 'italic',
     textAlign: 'center',
@@ -448,7 +448,7 @@ const styles = StyleSheet.create({
   },
   matchDate: {
     fontSize: 14,
-    color: Colors.secondary,
+    color: Colors.text,
   },
   matchOpponent: {
     fontSize: 16,
