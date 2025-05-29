@@ -10,6 +10,7 @@ export const STORAGE_KEYS = {
   USERS: 'hockey_users',
   CURRENT_USER: 'hockey_current_user',
   ANNOUNCEMENTS: 'hockey_announcements',
+  ROLE_REQUESTS: 'hockey_role_requests',
 };
 
 // Helper functions
@@ -205,6 +206,184 @@ export const updateUser = async (updatedUser) => {
   }
 };
 
+// Role Request Functions
+export const submitRoleRequest = async (userId, requestedRole, team = null) => {
+  try {
+    if (!userId || !requestedRole) {
+      throw new Error('User ID and requested role are required');
+    }
+
+    const roleRequests = await getRoleRequests();
+    
+    // Check if user already has a pending request
+    const existingRequest = roleRequests.find(
+      request => request.userId === userId && request.status === 'pending'
+    );
+    
+    if (existingRequest) {
+      throw new Error('You already have a pending role request');
+    }
+    
+    // Create new role request
+    const newRequest = {
+      id: generateId(),
+      userId: userId,
+      requestedRole: requestedRole,
+      team: team,
+      status: 'pending', // pending, approved, rejected
+      requestDate: new Date().toISOString(),
+      reviewDate: null,
+      reviewedBy: null,
+      comments: null
+    };
+    
+    // Add to requests array and save
+    roleRequests.push(newRequest);
+    await storeData(STORAGE_KEYS.ROLE_REQUESTS, roleRequests);
+    
+    console.log(`✅ Role request submitted:`, newRequest);
+    return newRequest;
+  } catch (error) {
+    console.error('Error submitting role request:', error);
+    throw error;
+  }
+};
+
+export const getRoleRequests = async () => {
+  try {
+    const requests = await getData(STORAGE_KEYS.ROLE_REQUESTS);
+    return requests || [];
+  } catch (error) {
+    console.error('Error getting role requests:', error);
+    return [];
+  }
+};
+
+export const checkUserHasPendingRequest = async (userId) => {
+  try {
+    if (!userId) {
+      return false;
+    }
+    
+    const roleRequests = await getRoleRequests();
+    const hasPending = roleRequests.some(
+      request => request.userId === userId && request.status === 'pending'
+    );
+    
+    console.log(`🔍 User ${userId} has pending request:`, hasPending);
+    return hasPending;
+  } catch (error) {
+    console.error('Error checking user pending request:', error);
+    return false;
+  }
+};
+
+export const approveRoleRequest = async (requestId, adminUserId) => {
+  try {
+    const roleRequests = await getRoleRequests();
+    const users = await getUsers();
+    
+    // Find the request
+    const requestIndex = roleRequests.findIndex(req => req.id === requestId);
+    if (requestIndex === -1) {
+      throw new Error('Role request not found');
+    }
+    
+    const request = roleRequests[requestIndex];
+    
+    // Update the user's role
+    const userIndex = users.findIndex(user => user.id === request.userId);
+    if (userIndex === -1) {
+      throw new Error('User not found');
+    }
+    
+    // Update user role
+    users[userIndex].role = request.requestedRole;
+    if (request.team) {
+      users[userIndex].team = request.team;
+    }
+    
+    // Update request status
+    roleRequests[requestIndex] = {
+      ...request,
+      status: 'approved',
+      reviewDate: new Date().toISOString(),
+      reviewedBy: adminUserId
+    };
+    
+    // Save both updates
+    await storeData(STORAGE_KEYS.USERS, users);
+    await storeData(STORAGE_KEYS.ROLE_REQUESTS, roleRequests);
+    
+    // Update current user if it's the same user
+    const currentUser = await getCurrentUser();
+    if (currentUser && currentUser.id === request.userId) {
+      const updatedCurrentUser = {
+        ...currentUser,
+        role: request.requestedRole,
+        team: request.team || currentUser.team
+      };
+      await setCurrentUser(updatedCurrentUser);
+    }
+    
+    console.log(`✅ Role request approved for user ${request.userId}`);
+    return roleRequests[requestIndex];
+  } catch (error) {
+    console.error('Error approving role request:', error);
+    throw error;
+  }
+};
+
+export const rejectRoleRequest = async (requestId, adminUserId, comments = null) => {
+  try {
+    const roleRequests = await getRoleRequests();
+    
+    // Find the request
+    const requestIndex = roleRequests.findIndex(req => req.id === requestId);
+    if (requestIndex === -1) {
+      throw new Error('Role request not found');
+    }
+    
+    // Update request status
+    roleRequests[requestIndex] = {
+      ...roleRequests[requestIndex],
+      status: 'rejected',
+      reviewDate: new Date().toISOString(),
+      reviewedBy: adminUserId,
+      comments: comments
+    };
+    
+    // Save updated requests
+    await storeData(STORAGE_KEYS.ROLE_REQUESTS, roleRequests);
+    
+    console.log(`✅ Role request rejected for request ${requestId}`);
+    return roleRequests[requestIndex];
+  } catch (error) {
+    console.error('Error rejecting role request:', error);
+    throw error;
+  }
+};
+
+export const getPendingRoleRequests = async () => {
+  try {
+    const allRequests = await getRoleRequests();
+    return allRequests.filter(request => request.status === 'pending');
+  } catch (error) {
+    console.error('Error getting pending role requests:', error);
+    return [];
+  }
+};
+
+export const getUserRoleRequests = async (userId) => {
+  try {
+    const allRequests = await getRoleRequests();
+    return allRequests.filter(request => request.userId === userId);
+  } catch (error) {
+    console.error('Error getting user role requests:', error);
+    return [];
+  }
+};
+
 // Initialize storage with sample data
 export const initializeStorage = async () => {
   try {
@@ -222,6 +401,12 @@ export const initializeStorage = async () => {
       
       console.log(`🔧 Initializing with default admin:`, defaultAdmin);
       await storeData(STORAGE_KEYS.USERS, [defaultAdmin]);
+    }
+    
+    // Initialize role requests if none exist
+    const roleRequests = await getRoleRequests();
+    if (roleRequests.length === 0) {
+      await storeData(STORAGE_KEYS.ROLE_REQUESTS, []);
     }
     
     // Check if teams exist, if not, initialize with sample data
@@ -500,6 +685,13 @@ export default {
   setCurrentUser,
   logoutUser,
   updateUser,
+  submitRoleRequest,
+  getRoleRequests,
+  checkUserHasPendingRequest,
+  approveRoleRequest,
+  rejectRoleRequest,
+  getPendingRoleRequests,
+  getUserRoleRequests,
   getTeams,
   saveTeam,
   deleteTeam,

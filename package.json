@@ -19,6 +19,7 @@
     "@react-navigation/native-stack": "^7.3.12",
     "expo": "^53.0.9",
     "expo-status-bar": "~2.2.3",
+    "firebase": "^11.8.1",
     "map-hockey-3": "file:",
     "NamHockey": "file:",
     "react": "19.0.0",

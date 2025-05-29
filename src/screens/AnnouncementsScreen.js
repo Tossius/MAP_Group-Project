@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { StyleSheet, View, Text, FlatList, TouchableOpacity, TextInput, Alert } from 'react-native';
+import {
+  StyleSheet, View, Text, FlatList, TouchableOpacity, TextInput, Alert
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-import Button from '../components/Button';
 import Card from '../components/Card';
+import Button from '../components/Button';
 import Colors from '../constants/colors';
 import { getAnnouncements, createAnnouncement, deleteAnnouncement } from '../utils/storage';
 import { AuthContext } from '../context/AuthContext';
@@ -12,12 +14,17 @@ const AnnouncementsScreen = () => {
   const { user } = useContext(AuthContext);
   const [announcements, setAnnouncements] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
   const [newTitle, setNewTitle] = useState('');
   const [newContent, setNewContent] = useState('');
   const [isImportant, setIsImportant] = useState(false);
-  const [showForm, setShowForm] = useState(false);
 
-  // Fetch announcements
+  const userRole = user?.role || 'user';
+  const isAdmin = userRole === 'admin';
+  const isManager = userRole === 'manager';
+  const canCreate = isAdmin || isManager;
+  const canDelete = isAdmin;
+
   const fetchAnnouncements = async () => {
     try {
       setIsLoading(true);
@@ -31,12 +38,10 @@ const AnnouncementsScreen = () => {
     }
   };
 
-  // Load announcements on component mount
   useEffect(() => {
     fetchAnnouncements();
   }, []);
 
-  // Handle creating a new announcement
   const handleCreateAnnouncement = async () => {
     if (!newTitle.trim() || !newContent.trim()) {
       Alert.alert('Error', 'Please enter both title and content');
@@ -44,32 +49,24 @@ const AnnouncementsScreen = () => {
     }
 
     try {
-      setIsLoading(true);
       await createAnnouncement({
         title: newTitle,
         content: newContent,
         important: isImportant
       }, user);
 
-      // Reset form
       setNewTitle('');
       setNewContent('');
       setIsImportant(false);
       setShowForm(false);
-
-      // Refresh announcements
-      await fetchAnnouncements();
+      fetchAnnouncements();
       Alert.alert('Success', 'Announcement created successfully');
     } catch (error) {
-      console.error('Error creating announcement:', error);
       Alert.alert('Error', error.message || 'Failed to create announcement');
-    } finally {
-      setIsLoading(false);
     }
   };
 
-  // Handle deleting an announcement
-  const handleDeleteAnnouncement = async (id) => {
+  const handleDeleteAnnouncement = (id) => {
     Alert.alert(
       'Confirm Delete',
       'Are you sure you want to delete this announcement?',
@@ -80,15 +77,10 @@ const AnnouncementsScreen = () => {
           style: 'destructive',
           onPress: async () => {
             try {
-              setIsLoading(true);
               await deleteAnnouncement(id, user);
-              await fetchAnnouncements();
-              Alert.alert('Success', 'Announcement deleted successfully');
+              fetchAnnouncements();
             } catch (error) {
-              console.error('Error deleting announcement:', error);
-              Alert.alert('Error', error.message || 'Failed to delete announcement');
-            } finally {
-              setIsLoading(false);
+              Alert.alert('Error', error.message || 'Failed to delete');
             }
           }
         }
@@ -96,127 +88,98 @@ const AnnouncementsScreen = () => {
     );
   };
 
-  // Render an announcement item
-  const renderAnnouncementItem = ({ item }) => {
-    const date = new Date(item.createdAt);
-    const formattedDate = `${date.toLocaleDateString()} ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
-
-    return (
-      <Card style={[styles.announcementCard, item.important && styles.importantCard]}>
+  const renderItem = ({ item }) => (
+    <Card style={styles.card}>
+      <View style={styles.headerRow}>
+        <Text style={styles.title}>{item.title}</Text>
         {item.important && (
-          <View style={styles.importantBadge}>
-            <Ionicons name="alert-circle" size={16} color={Colors.background} />
-            <Text style={styles.importantText}>Important</Text>
+          <View style={styles.badge}>
+            <Ionicons name="alert-circle" size={14} color={Colors.background} />
+            <Text style={styles.badgeText}>Important</Text>
           </View>
         )}
-        
-        <View style={styles.headerRow}>
-          <Text style={styles.announcementTitle}>{item.title}</Text>
-          {user && user.isAdmin && (
-            <TouchableOpacity onPress={() => handleDeleteAnnouncement(item.id)}>
-              <Ionicons name="trash-outline" size={20} color={Colors.error} />
-            </TouchableOpacity>
-          )}
+      </View>
+      <Text style={styles.content}>{item.content}</Text>
+      <View style={styles.metaRow}>
+        <Text style={styles.meta}>By: {item.createdBy}</Text>
+        <Text style={styles.meta}>{new Date(item.createdAt).toLocaleString()}</Text>
+      </View>
+      {canDelete && (
+        <View style={styles.actionRow}>
+          <Button
+            title="Delete"
+            onPress={() => handleDeleteAnnouncement(item.id)}
+            style={styles.deleteButton}
+            textStyle={styles.deleteText}
+          />
         </View>
-        
-        <Text style={styles.announcementContent}>{item.content}</Text>
-        
-        <View style={styles.footerRow}>
-          <Text style={styles.createdBy}>Posted by: {item.createdBy}</Text>
-          <Text style={styles.createdAt}>{formattedDate}</Text>
-        </View>
-      </Card>
-    );
-  };
+      )}
+    </Card>
+  );
 
   return (
     <View style={styles.screen}>
-      <View style={styles.container}>
-        {user && user.isAdmin && (
-          <View style={styles.adminSection}>
-            {!showForm ? (
-              <Button
-                title="Create New Announcement"
-                onPress={() => setShowForm(true)}
-                style={styles.createButton}
-              />
-            ) : (
-              <Card style={styles.formCard}>
-                <Text style={styles.formTitle}>Create New Announcement</Text>
-                
-                <View style={styles.inputContainer}>
-                  <Text style={styles.inputLabel}>Title:</Text>
-                  <TextInput
-                    style={styles.input}
-                    value={newTitle}
-                    onChangeText={setNewTitle}
-                    placeholder="Enter announcement title"
-                  />
-                </View>
-                
-                <View style={styles.inputContainer}>
-                  <Text style={styles.inputLabel}>Content:</Text>
-                  <TextInput
-                    style={[styles.input, styles.contentInput]}
-                    value={newContent}
-                    onChangeText={setNewContent}
-                    placeholder="Enter announcement content"
-                    multiline
-                    numberOfLines={4}
-                  />
-                </View>
-                
-                <TouchableOpacity
-                  style={styles.importantContainer}
-                  onPress={() => setIsImportant(!isImportant)}
-                >
-                  <Ionicons
-                    name={isImportant ? 'checkbox' : 'square-outline'}
-                    size={24}
-                    color={Colors.primary}
-                  />
-                  <Text style={styles.importantLabel}>Mark as important</Text>
-                </TouchableOpacity>
-                
-                <View style={styles.buttonRow}>
-                  <Button
-                    title="Cancel"
-                    onPress={() => {
-                      setShowForm(false);
-                      setNewTitle('');
-                      setNewContent('');
-                      setIsImportant(false);
-                    }}
-                    style={[styles.formButton, styles.cancelButton]}
-                    textStyle={styles.cancelButtonText}
-                  />
-                  <Button
-                    title="Post Announcement"
-                    onPress={handleCreateAnnouncement}
-                    style={styles.formButton}
-                    disabled={isLoading}
-                  />
-                </View>
-              </Card>
-            )}
-          </View>
-        )}
-        
-        <Text style={styles.sectionTitle}>Announcements</Text>
-        
-        {announcements.length === 0 ? (
-          <Text style={styles.emptyText}>No announcements available</Text>
-        ) : (
-          <FlatList
-            data={announcements}
-            keyExtractor={item => item.id}
-            renderItem={renderAnnouncementItem}
-            contentContainerStyle={styles.listContainer}
-            refreshing={isLoading}
-            onRefresh={fetchAnnouncements}
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Announcements</Text>
+        {canCreate && !showForm && (
+          <Button
+            title="New Announcement"
+            onPress={() => setShowForm(true)}
+            style={styles.createButton}
           />
         )}
       </View>
+
+      {showForm && (
+        <Card style={styles.form}>
+          <Text style={styles.formTitle}>Create Announcement</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Title"
+            value={newTitle}
+            onChangeText={setNewTitle}
+          />
+          <TextInput
+            style={[styles.input, styles.multiline]}
+            placeholder="Content"
+            value={newContent}
+            onChangeText={setNewContent}
+            multiline
+          />
+          <TouchableOpacity
+            style={styles.checkboxRow}
+            onPress={() => setIsImportant(!isImportant)}
+          >
+            <Ionicons
+              name={isImportant ? 'checkbox' : 'square-outline'}
+              size={20}
+              color={Colors.primary}
+            />
+            <Text style={styles.checkboxLabel}>Mark as Important</Text>
+          </TouchableOpacity>
+          <View style={styles.buttonRow}>
+            <Button title="Cancel" onPress={() => setShowForm(false)} />
+            <Button title="Post" onPress={handleCreateAnnouncement} />
+          </View>
+        </Card>
+      )}
+
+      <FlatList
+        data={announcements}
+        keyExtractor={(item) => item.id}
+        renderItem={renderItem}
+        contentContainerStyle={styles.list}
+        ListEmptyComponent={
+          <View style={styles.empty}>
+            <Text style={styles.emptyText}>No announcements found.</Text>
+            {canCreate && (
+              <Button title="Create One" onPress={() => setShowForm(true)} />
+            )}
+          </View>
+        }
+        refreshing={isLoading}
+        onRefresh={fetchAnnouncements}
+      />
     </View>
   );
 };
@@ -224,146 +187,122 @@ const AnnouncementsScreen = () => {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
+    backgroundColor: Colors.lightGray,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
     backgroundColor: Colors.background,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.gray,
   },
-  container: {
-    flex: 1,
-    padding: 16,
-  },
-  sectionTitle: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: Colors.secondary,
-    marginBottom: 16,
-  },
-  adminSection: {
-    marginBottom: 20,
-  },
-  createButton: {
-    backgroundColor: Colors.primary,
-  },
-  formCard: {
-    padding: 16,
-    marginBottom: 16,
-  },
-  formTitle: {
+  headerTitle: {
     fontSize: 18,
     fontWeight: 'bold',
     color: Colors.secondary,
-    marginBottom: 16,
-    textAlign: 'center',
   },
-  inputContainer: {
-    marginBottom: 16,
+  createButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
   },
-  inputLabel: {
+  form: {
+    margin: 16,
+    padding: 16,
+  },
+  formTitle: {
     fontSize: 16,
-    color: Colors.secondary,
-    marginBottom: 8,
+    fontWeight: 'bold',
+    marginBottom: 12,
   },
   input: {
     borderWidth: 1,
-    borderColor: Colors.lightGray,
-    borderRadius: 5,
+    borderColor: Colors.gray,
+    borderRadius: 4,
     padding: 10,
-    fontSize: 16,
-    color: Colors.secondary,
+    marginBottom: 12,
   },
-  contentInput: {
+  multiline: {
     minHeight: 100,
     textAlignVertical: 'top',
   },
-  importantContainer: {
+  checkboxRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 12,
   },
-  importantLabel: {
-    fontSize: 16,
-    color: Colors.secondary,
+  checkboxLabel: {
     marginLeft: 8,
+    fontSize: 14,
+    color: Colors.text,
   },
   buttonRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
   },
-  formButton: {
-    flex: 1,
-    marginHorizontal: 5,
-  },
-  cancelButton: {
-    backgroundColor: Colors.background,
-    borderWidth: 1,
-    borderColor: Colors.primary,
-  },
-  cancelButtonText: {
-    color: Colors.primary,
-  },
-  listContainer: {
-    paddingBottom: 20,
-  },
-  announcementCard: {
-    marginBottom: 12,
+  list: {
     padding: 16,
   },
-  importantCard: {
-    borderLeftWidth: 5,
-    borderLeftColor: Colors.error,
-  },
-  importantBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.error,
-    alignSelf: 'flex-start',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
-    marginBottom: 8,
-  },
-  importantText: {
-    color: Colors.background,
-    fontSize: 12,
-    fontWeight: 'bold',
-    marginLeft: 4,
+  card: {
+    padding: 16,
+    marginBottom: 12,
   },
   headerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
   },
-  announcementTitle: {
-    fontSize: 18,
+  title: {
+    fontSize: 16,
     fontWeight: 'bold',
-    color: Colors.secondary,
     flex: 1,
   },
-  announcementContent: {
-    fontSize: 16,
-    color: Colors.secondary,
-    marginBottom: 12,
-    lineHeight: 22,
+  badge: {
+    backgroundColor: Colors.error,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
   },
-  footerRow: {
+  badgeText: {
+    color: Colors.background,
+    fontSize: 12,
+    marginLeft: 4,
+  },
+  content: {
+    fontSize: 14,
+    marginVertical: 8,
+    color: Colors.secondary,
+  },
+  metaRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    borderTopWidth: 1,
-    borderTopColor: Colors.lightGray,
-    paddingTop: 8,
   },
-  createdBy: {
+  meta: {
     fontSize: 12,
     color: Colors.gray,
   },
-  createdAt: {
+  actionRow: {
+    alignItems: 'flex-end',
+    marginTop: 8,
+  },
+  deleteButton: {
+    backgroundColor: Colors.accent,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  deleteText: {
     fontSize: 12,
-    color: Colors.gray,
+  },
+  empty: {
+    alignItems: 'center',
+    marginTop: 40,
   },
   emptyText: {
     fontSize: 16,
-    color: Colors.gray,
-    textAlign: 'center',
-    marginTop: 20,
+    color: Colors.text,
+    marginBottom: 12,
   },
 });
 
