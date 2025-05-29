@@ -137,52 +137,6 @@ const HomeScreen = ({ navigation }) => {
           </TouchableOpacity>
         </View>
 
-        {/* Quick Actions Card */}
-        <View style={styles.quickActionsCard}>
-          <Text style={styles.quickActionsTitle}>Quick Actions</Text>
-          <View style={styles.quickActionsGrid}>
-            <TouchableOpacity 
-              style={styles.quickActionItem}
-              onPress={() => navigation.navigate('TeamsTab', { screen: 'TeamRegistration' })}
-            >
-              <View style={styles.quickActionIcon}>
-                <Ionicons name="people-outline" size={22} color={Colors.primary} />
-              </View>
-              <Text style={styles.quickActionText}>Register Team</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={styles.quickActionItem}
-              onPress={() => navigation.navigate('PlayersTab', { screen: 'PlayerRegistration' })}
-            >
-              <View style={styles.quickActionIcon}>
-                <Ionicons name="person-add-outline" size={22} color={Colors.primary} />
-              </View>
-              <Text style={styles.quickActionText}>Register Player</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={styles.quickActionItem}
-              onPress={() => navigation.navigate('EventsTab', { screen: 'EventRegistration',})}
-            >
-              <View style={styles.quickActionIcon}>
-                <Ionicons name="calendar-outline" size={22} color={Colors.primary} />
-              </View>
-              <Text style={styles.quickActionText}>Event Entry</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={styles.quickActionItem}
-              onPress={() => navigation.navigate('Announcements')}
-            >
-              <View style={styles.quickActionIcon}>
-                <MaterialCommunityIcons name="bullhorn-outline" size={22} color={Colors.primary} />
-              </View>
-              <Text style={styles.quickActionText}>Announcements</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
         {/* Announcements Section */}
         <View style={styles.announcementsSection}>
           <View style={styles.sectionHeader}>
