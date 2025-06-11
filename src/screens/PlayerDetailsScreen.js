@@ -191,14 +191,6 @@ const PlayerDetailsScreen = ({ route, navigation }) => {
           <Text style={styles.cardTitle}>Biography</Text>
           <Text style={styles.bio}>{playerBio}</Text>
         </Card>
-        
-        <View style={styles.buttonContainer}>
-          <Button
-            title="Edit Player"
-            onPress={() => {}}
-            style={styles.button}
-          />
-        </View>
       </View>
     </ScrollView>
   );

@@ -57,7 +57,7 @@ const LoginScreen = ({ navigation }) => {
     <View style={styles.screen}>
       <View style={styles.container}>
         <View style={styles.logoContainer}>
-          <Ionicons name="football-outline" size={80} color={Colors.primary} />
+          <Ionicons name="trophy-outline" size={80} color={Colors.warning} />
           <Text style={styles.appTitle}>NamHockey</Text>
           <Text style={styles.appSubtitle}>Official Information and Team Management App</Text>
         </View>
@@ -92,12 +92,6 @@ const LoginScreen = ({ navigation }) => {
           <Button
             title={isLoading ? "Logging in..." : "Login"}
             onPress={handleLogin}
-            disabled={isLoading}
-          />
-
-          <Button
-            title="Clear Storage"
-            onPress={handleClearStorage}
             disabled={isLoading}
           />
           
@@ -200,4 +194,3 @@ const styles = StyleSheet.create({
 });
 
 export default LoginScreen;
-

@@ -14,7 +14,7 @@ const EventRegistrationScreen = ({ route, navigation }) => {
   const [selectedTeamName, setSelectedTeamName] = useState('Select a team');
   const [showTeamModal, setShowTeamModal] = useState(false);
   const [teamOptions, setTeamOptions] = useState([]);
-  const [minimumPlayers, setMinimumPlayers] = useState(11); // Minimum players required for an event
+  const [minimumPlayers, setMinimumPlayers] = useState(1); // Minimum players required for an event
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   

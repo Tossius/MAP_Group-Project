@@ -192,7 +192,7 @@ const HomeScreen = ({ navigation }) => {
           
           <TouchableOpacity 
           style={styles.linkCard} 
-          onPress={() => Linking.openURL('https://www.facebook.com/NamibiaHockey/')}
+          onPress={() => Linking.openURL('https://namibiahockey.org')}
           >
             <View style={styles.linkIconContainer}>
               <Feather name="globe" size={20} color={Colors.background} />

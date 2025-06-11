@@ -1,43 +1,98 @@
-import React, { useState } from 'react';
-import { StyleSheet, View, Text, ScrollView, FlatList } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { StyleSheet, View, Text, ScrollView, FlatList, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import Card from '../components/Card';
 import Button from '../components/Button';
 import Colors from '../constants/colors';
+import { getEvents, getEventRegistrations, getTeams } from '../utils/storage';
 
 const EventDetailsScreen = ({ route, navigation }) => {
   const { eventId } = route.params;
   
-  // Mock event data
-  const [event, setEvent] = useState({
-    id: eventId,
-    title: 'National Championship',
-    date: '2025-06-15',
-    endDate: '2025-06-20',
-    location: 'Windhoek Stadium',
-    registrationFee: 'N$500',
-    registrationDeadline: '2025-05-30',
-    organizer: 'Namibia Hockey Union',
-    contactEmail: 'events@namibiahockey.org',
-    contactPhone: '+264 61 234 5678',
-    description: 'The annual National Hockey Championship brings together the best teams from across Namibia to compete for the national title. The tournament features men\'s and women\'s divisions with teams from all regions of the country.',
+  const [event, setEvent] = useState(null);
+  const [registeredTeams, setRegisteredTeams] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  
+  // Load event data from storage
+  useEffect(() => {
+    const loadEventData = async () => {
+      try {
+        setIsLoading(true);
+        
+        // Get the specific event
+        const events = await getEvents();
+        const foundEvent = events.find(e => e.id === eventId);
+        
+        if (foundEvent) {
+          // Add sample data if not present
+          const eventWithDefaults = {
+            ...foundEvent,
+            endDate: foundEvent.endDate || foundEvent.date, // Use same date if no end date
+            organizer: foundEvent.organizer || 'Namibia Hockey Union',
+            contactEmail: foundEvent.contactEmail || 'events@namibiahockey.org',
+            contactPhone: foundEvent.contactPhone || '+264 61 234 5678'
+          };
+          setEvent(eventWithDefaults);
+          
+          // Get event registrations
+          const registrations = await getEventRegistrations();
+          const eventRegistrations = registrations.filter(reg => reg.eventId === eventId);
+          
+          // Get team details for registered teams
+          const teams = await getTeams();
+          const registeredTeamsData = eventRegistrations.map(reg => {
+            const team = teams.find(t => t.id === reg.teamId);
+            return {
+              id: reg.teamId,
+              name: team ? team.name : 'Unknown Team',
+              category: team ? team.category : 'Unknown',
+              registrationDate: reg.registrationDate
+            };
+          });
+          
+          setRegisteredTeams(registeredTeamsData);
+        } else {
+          Alert.alert('Error', 'Event not found');
+          navigation.goBack();
+        }
+      } catch (error) {
+        console.error('Error loading event data:', error);
+        Alert.alert('Error', 'Failed to load event data');
+      } finally {
+        setIsLoading(false);
+      }
+    };
     
-  });
+    loadEventData();
+  }, [eventId, navigation]);
   
-  // Mock registered teams
-  const [registeredTeams, setRegisteredTeams] = useState([
-    { id: '1', name: 'Windhoek Hockey Club', category: 'Men', registrationDate: '2025-05-01' },
-    { id: '2', name: 'Coastal Hockey Club', category: 'Women', registrationDate: '2025-05-03' },
-    { id: '3', name: 'University of Namibia', category: 'Men', registrationDate: '2025-05-05' },
-  ]);
-  
-  const renderScheduleItem = ({ item }) => (
-    <View style={styles.scheduleItem}>
-      <Text style={styles.scheduleTime}>{item.time}</Text>
-      <Text style={styles.scheduleDescription}>{item.description}</Text>
-    </View>
-  );
+  // Refresh data when navigating back to this screen
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', async () => {
+      try {
+        const registrations = await getEventRegistrations();
+        const eventRegistrations = registrations.filter(reg => reg.eventId === eventId);
+        
+        const teams = await getTeams();
+        const registeredTeamsData = eventRegistrations.map(reg => {
+          const team = teams.find(t => t.id === reg.teamId);
+          return {
+            id: reg.teamId,
+            name: team ? team.name : 'Unknown Team',
+            category: team ? team.category : 'Unknown',
+            registrationDate: reg.registrationDate
+          };
+        });
+        
+        setRegisteredTeams(registeredTeamsData);
+      } catch (error) {
+        console.error('Error refreshing registrations:', error);
+      }
+    });
+    
+    return unsubscribe;
+  }, [eventId, navigation]);
   
   const renderTeamItem = ({ item }) => (
     <Card style={styles.teamCard} onPress={() => navigation.navigate('TeamDetails', { teamId: item.id })}>
@@ -47,9 +102,27 @@ const EventDetailsScreen = ({ route, navigation }) => {
           <Text style={styles.categoryText}>{item.category}</Text>
         </View>
       </View>
-      <Text style={styles.registrationDate}>Registered: {new Date(item.registrationDate).toLocaleDateString()}</Text>
+      <Text style={styles.registrationDate}>
+        Registered: {new Date(item.registrationDate).toLocaleDateString()}
+      </Text>
     </Card>
   );
+  
+  if (isLoading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <Text>Loading event details...</Text>
+      </View>
+    );
+  }
+  
+  if (!event) {
+    return (
+      <View style={styles.loadingContainer}>
+        <Text>Event not found</Text>
+      </View>
+    );
+  }
   
   const isRegistrationOpen = new Date() <= new Date(event.registrationDeadline);
   
@@ -63,7 +136,9 @@ const EventDetailsScreen = ({ route, navigation }) => {
           <View style={styles.infoRow}>
             <Ionicons name="calendar-outline" size={20} color={Colors.primary} />
             <Text style={styles.infoText}>
-              {new Date(event.date).toLocaleDateString()} - {new Date(event.endDate).toLocaleDateString()}
+              {new Date(event.date).toLocaleDateString()} 
+              {event.endDate && event.endDate !== event.date ? 
+                ` - ${new Date(event.endDate).toLocaleDateString()}` : ''}
             </Text>
           </View>
           <View style={styles.infoRow}>
@@ -103,16 +178,6 @@ const EventDetailsScreen = ({ route, navigation }) => {
           <Text style={styles.description}>{event.description}</Text>
         </Card>
         
-        <Card style={styles.infoCard}>
-          <Text style={styles.cardTitle}>Schedule (Day 1)</Text>
-          <FlatList
-            data={event.schedule}
-            keyExtractor={item => item.id}
-            renderItem={renderScheduleItem}
-            scrollEnabled={false}
-          />
-        </Card>
-        
         <View style={styles.registrationContainer}>
           {isRegistrationOpen ? (
             <Button
@@ -124,15 +189,21 @@ const EventDetailsScreen = ({ route, navigation }) => {
           )}
         </View>
         
-        <Text style={styles.sectionTitle}>Registered Teams</Text>
+        <Text style={styles.sectionTitle}>Registered Teams ({registeredTeams.length})</Text>
         
-        <FlatList
-          data={registeredTeams}
-          keyExtractor={item => item.id}
-          renderItem={renderTeamItem}
-          scrollEnabled={false}
-          style={styles.teamsList}
-        />
+        {registeredTeams.length > 0 ? (
+          <FlatList
+            data={registeredTeams}
+            keyExtractor={item => item.id}
+            renderItem={renderTeamItem}
+            scrollEnabled={false}
+            style={styles.teamsList}
+          />
+        ) : (
+          <Card style={styles.emptyCard}>
+            <Text style={styles.emptyText}>No teams registered yet</Text>
+          </Card>
+        )}
       </View>
     </ScrollView>
   );
@@ -145,6 +216,11 @@ const styles = StyleSheet.create({
   },
   container: {
     padding: 16,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   eventTitle: {
     fontSize: 24,
@@ -175,23 +251,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: Colors.text,
     lineHeight: 24,
-  },
-  scheduleItem: {
-    flexDirection: 'row',
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.lightGray,
-  },
-  scheduleTime: {
-    width: 80,
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: Colors.primary,
-  },
-  scheduleDescription: {
-    flex: 1,
-    fontSize: 16,
-    color: Colors.text,
   },
   registrationContainer: {
     marginVertical: 16,
@@ -242,6 +301,15 @@ const styles = StyleSheet.create({
   registrationDate: {
     fontSize: 14,
     color: Colors.gray,
+  },
+  emptyCard: {
+    padding: 20,
+    alignItems: 'center',
+  },
+  emptyText: {
+    fontSize: 16,
+    color: Colors.gray,
+    textAlign: 'center',
   },
 });
 
