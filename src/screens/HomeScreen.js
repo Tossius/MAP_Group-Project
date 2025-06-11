@@ -11,7 +11,8 @@ import {
   Dimensions,
   SafeAreaView,
   RefreshControl,
-  Linking
+  Linking,
+  Alert
 } from 'react-native';
 import { 
   Ionicons, 
@@ -28,11 +29,59 @@ import { AuthContext } from '../context/AuthContext';
 
 const { width } = Dimensions.get('window');
 
+// News API configuration
+const NEWS_API_KEY = 'ce43a98f68c9449e97fdfd0ada116d5c'; 
+const NEWS_API_URL = 'https://newsapi.org/v2/everything';
+
 const HomeScreen = ({ navigation }) => {
   const { user } = useContext(AuthContext);
   const [announcements, setAnnouncements] = useState([]);
+  const [newsArticles, setNewsArticles] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingNews, setIsLoadingNews] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+
+  // Fetch news articles
+  const fetchNews = async () => {
+    try {
+      setIsLoadingNews(true);
+      const response = await fetch(
+        `${NEWS_API_URL}?q=namibia hockey union OR field hockey namibia&sortBy=publishedAt&pageSize=3&apiKey=${NEWS_API_KEY}`
+      );
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch news');
+      }
+      
+      const data = await response.json();
+      
+      // Filter out articles without images and format them
+      const filteredArticles = data.articles
+        .filter(article => 
+          article.urlToImage && 
+          article.title && 
+          article.description &&
+          !article.title.includes('[Removed]')
+        )
+        .slice(0, 3)
+        .map(article => ({
+          id: article.url,
+          title: article.title,
+          description: article.description,
+          imageUrl: article.urlToImage,
+          url: article.url,
+          publishedAt: article.publishedAt,
+          source: article.source.name
+        }));
+      
+      setNewsArticles(filteredArticles);
+    } catch (error) {
+      console.error('Error fetching news:', error);
+      setNewsArticles([]);
+    } finally {
+      setIsLoadingNews(false);
+    }
+  };
 
   // Fetch announcements from storage
   const fetchAnnouncements = async () => {
@@ -45,17 +94,35 @@ const HomeScreen = ({ navigation }) => {
       console.error('Error fetching announcements:', error);
     } finally {
       setIsLoading(false);
-      setRefreshing(false);
     }
   };
 
   const onRefresh = () => {
     setRefreshing(true);
-    fetchAnnouncements();
+    Promise.all([fetchAnnouncements(), fetchNews()]).finally(() => {
+      setRefreshing(false);
+    });
+  };
+
+  const handleNewsPress = (url) => {
+    Linking.openURL(url).catch(err => {
+      console.error('Error opening URL:', err);
+      Alert.alert('Error', 'Unable to open the article. Please try again later.');
+    });
+  };
+
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    });
   };
 
   useEffect(() => {
     fetchAnnouncements();
+    fetchNews();
   }, []);
 
   return (
@@ -186,13 +253,68 @@ const HomeScreen = ({ navigation }) => {
           )}
         </View>
 
+        {/* News Section */}
+        <View style={styles.newsSection}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Latest News</Text>
+            <TouchableOpacity 
+              style={styles.viewAllLink}
+              onPress={() => Linking.openURL('https://www.google.com/search?q=namibia+hockey+news&tbm=nws')}
+            >
+              <Text style={styles.viewAllText}>More News</Text>
+              <Feather name="external-link" size={16} color={Colors.primary} />
+            </TouchableOpacity>
+          </View>
+          
+          {isLoadingNews ? (
+            <View style={styles.loadingContainer}>
+              <Text style={styles.loadingText}>Loading latest news...</Text>
+            </View>
+          ) : newsArticles.length === 0 ? (
+            <View style={styles.emptyContainer}>
+              <Feather name="newspaper" size={24} color={Colors.gray} />
+              <Text style={styles.emptyText}>No news articles available</Text>
+            </View>
+          ) : (
+            <View style={styles.newsList}>
+              {newsArticles.map(article => (
+                <TouchableOpacity 
+                  key={article.id} 
+                  style={styles.newsCard}
+                  onPress={() => handleNewsPress(article.url)}
+                >
+                  <Image 
+                    source={{ uri: article.imageUrl }} 
+                    style={styles.newsImage}
+                    resizeMode="cover"
+                  />
+                  <View style={styles.newsContent}>
+                    <View style={styles.newsHeader}>
+                      <Text style={styles.newsSource}>{article.source}</Text>
+                      <Text style={styles.newsDate}>{formatDate(article.publishedAt)}</Text>
+                    </View>
+                    <Text style={styles.newsTitle} numberOfLines={2}>{article.title}</Text>
+                    <Text style={styles.newsDescription} numberOfLines={2}>
+                      {article.description}
+                    </Text>
+                    <View style={styles.readMoreContainer}>
+                      <Text style={styles.readMoreText}>Read full article</Text>
+                      <Feather name="external-link" size={14} color={Colors.primary} />
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+        </View>
+
         {/* External Links Section */}
         <View style={styles.linksSection}>
           <Text style={styles.linksSectionTitle}>Quick Links</Text>
           
           <TouchableOpacity 
           style={styles.linkCard} 
-          onPress={() => Linking.openURL('https://namibiahockey.org')}
+          onPress={() => Linking.openURL('https://www.facebook.com/NamibiaHockey/')}
           >
             <View style={styles.linkIconContainer}>
               <Feather name="globe" size={20} color={Colors.background} />
@@ -342,46 +464,11 @@ const styles = StyleSheet.create({
     color: Colors.text,
     textAlign: 'center',
   },
-  quickActionsCard: {
-    backgroundColor: Colors.background,
-    borderRadius: 15,
-    margin: 15,
-    padding: 15,
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  quickActionsTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: Colors.text,
-    marginBottom: 15,
-  },
-  quickActionsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-  },
-  quickActionItem: {
-    width: '48%',
-    backgroundColor: Colors.lightGray,
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  quickActionIcon: {
-    marginRight: 10,
-  },
-  quickActionText: {
-    fontSize: 13,
-    color: Colors.text,
-    flex: 1,
-  },
   announcementsSection: {
+    margin: 15,
+    marginTop: 5,
+  },
+  newsSection: {
     margin: 15,
     marginTop: 5,
   },
@@ -482,6 +569,69 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Colors.text,
     lineHeight: 20,
+  },
+  // News Styles
+  newsList: {
+    marginBottom: 10,
+  },
+  newsCard: {
+    backgroundColor: Colors.background,
+    borderRadius: 12,
+    marginBottom: 15,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 3,
+    overflow: 'hidden',
+  },
+  newsImage: {
+    width: '100%',
+    height: 150,
+    backgroundColor: Colors.lightGray,
+  },
+  newsContent: {
+    padding: 15,
+  },
+  newsHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  newsSource: {
+    fontSize: 12,
+    color: Colors.primary,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+  },
+  newsDate: {
+    fontSize: 12,
+    color: Colors.darkGray,
+  },
+  newsTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: Colors.text,
+    marginBottom: 8,
+    lineHeight: 22,
+  },
+  newsDescription: {
+    fontSize: 14,
+    color: Colors.darkGray,
+    lineHeight: 20,
+    marginBottom: 12,
+  },
+  readMoreContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+  },
+  readMoreText: {
+    fontSize: 14,
+    color: Colors.primary,
+    fontWeight: '600',
+    marginRight: 5,
   },
   linksSection: {
     margin: 15,
